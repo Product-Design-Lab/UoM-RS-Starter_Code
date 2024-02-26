@@ -1,80 +1,51 @@
 
 /*
-TODO:
-- Driver motors from MATLAB
-  - Convert RAD to STS
-  - Update robot target variable
-  - Call DriveMotors();
-- Setup MATLAB to send whether a motor is in pos or vel mode (set on startup, then add option to change live)
-- Add FSM for reading FB, driving motors, idle, Arduino control mode, & updating firmware / changing modes
-- Send Motor IDs to MATLAB
-- Set MATLAB to ALWAY send/Receive MAX_ID worth of data
-- Update Motor parameters
-  - PID
-  - Punch
-  - ID
+UoM-RS-Arduino_Firmware.ino
+--------------------------
+Licenting Information: You are free to use or extend this project
+for educational purposes provided that (1) you do not distribute or
+publish solutions, (2) you retain this notice, and (3) you provide 
+clear attribution to the University of Melbourne, Department of 
+Mechanical Engineering and Product Design Lab.
 
-
-TO TEST
-- Test fixed loop rate timers
-- Test MATLAB Establish serial code
-- Test SendDataSerial
-- Test reading serial data from MATLAB using getDataSerial()
-- Test that velocity is encoder counts per section (i.e., 4000 = 1 rev / second)
-- Test reading feedback & sending to MATLAB
-- Test receiving drive command from MATLAB and moving motors
-- Test SerialMonitorMotorControl() & if it interferes with regular state operation
+Attribution Information: The ChessBot project was developed in collaboration
+between Product Design Lab & the University of Melbourne. The core project was 
+primarily developed by Professor Denny Oetomo (doetomo@unimelb.edu.au). All 
+Starter Code and libraries were developed by Nathan Batham of Product
+Design Lab
+(nathan@productdesignlab.com.au)
 
 */
 
 
 
+#include <Robotics_Systems_Library.h> 
 
-#include <Robotics_Systems_Library.h>
+#define TIMESTEP_MILLISECONDS 3   // Target Loop rate
 
-#define TIMESTEP_MILLISECONDS 3
-
+// Create global robot object
 UOM_RS_Robot robot;
+
+// Initialise global timers
 unsigned long tic = 0, toc = 0, timer = 0;
 
 
 
-
-// bool control_mode[MAX_ID] = {
-//                   POSITION, // Motor ID 1
-//                   POSITION, // Motor ID 2
-//                   POSITION, // Motor ID 3
-//                   POSITION, // Motor ID 4
-//                   POSITION, // Motor ID 5
-//                   POSITION, // Motor ID 6
-//                   POSITION, // Motor ID 7
-//                   POSITION  // Motor ID 8
-//                   };
-
-
 void setup() {
   
-  // int a = robot.EstablishMotorSerialConnection();
+  // Connect to Arduino to MATLAB
   robot.EstablishUSBConnection();
+
+  // Connect to Motors
   robot.EstablishMotorSerialConnection();
   
+  // Read ID of connected motors & send to MATLAB
   robot.getID();
   robot.sendMotorIDs();
   
-  // if (robot.connection_status != 1) {
-  //   Serial.println("Number of Connected Motors: " + String(robot.num_ID));
-  // }
-  
-
+  // Read initial feedback & set internal position variable
   robot.InitMotorFeedback();
 
-  // // Set motors to position or velocity control mode
-  // robot.SetMotorControlMode(control_mode);
-  
-  // for (int i=0; i<MAX_ID; i++) {
-  //   Serial.print(String(robot.control_mode[i]) + ", ");
-  // }
-  // Serial.println();
 }
 
 void loop() {
@@ -82,67 +53,64 @@ void loop() {
   // Begin measuring execution time
   tic = millis();
 
-  // robot.SerialMonitorMotorControl();
-  // Serial.print("Control Mode - Loop Level: ");
-  // for (int i=0; i<MAX_ID; i++) {
-  //   Serial.print(String(robot.control_mode[i]) + ", ");
-  // }
-  // Serial.println();
-
   // Finite State Machine
   switch (state) {
     case IDLE:
       
+      // Check for input for MATLAB
       if (robot.connection_status == 1) {
         state = robot.getState();
       }
-      // else {
-      //   robot.SerialMonitorMotorControl();
-      // }
       
       break;
 
     case READ_FB:
+
+      // Read mtor feedback
       robot.ReadFeedback();
+
+      // Send feedback to MATLAB
       robot.SendFB2MATLAB();
+
+      // Return to IDLE state
       state = IDLE;
       break;
 
     case DRIVE_MOTOR:
 
+      // Read reference position/velocity from MATLAB
       robot.getReference(); 
+
+      // Drive motors to reference
       robot.DriveMotors();
+
+      // Return to IDLE state
       state = IDLE;
       break;
       
 
     case UPDATE_DRIVE_MODE:
 
+      // Read motor control mode from MATLAB and update motors
       robot.getControlMode();
+
+      // Return to IDLE state
       state = IDLE;
       break;
       
-    case UPDATE_MOTOR:
-      // TODO
-      //  - PID, Punch, ID
-      state = IDLE;
-      break;
       
-     default:
+    default:
       state = IDLE;
       break;
   }
 
-  
 
-
-
-  // Wait until the full time-step unless running late.
+  // Measure loop time
   toc = millis();
   timer = toc - tic;
 
+  // Wait until the full time-step unless running late.
   if (timer > TIMESTEP_MILLISECONDS) {
-    // Serial.println("Warning: Running late by " + String(timer - TIMESTEP_MILLISECONDS) + " milliseconds!");
     return;
   }
   
