@@ -22,6 +22,7 @@ Design Lab
 #include <Robotics_Systems_Library.h> 
 
 #define TIMESTEP_MILLISECONDS 3   // Target Loop rate
+#define DIGITAL_PIN 13 // Define Digital IO Pin
 
 // Create global robot object
 UOM_RS_Robot robot;
@@ -45,6 +46,10 @@ void setup() {
   
   // Read initial feedback & set internal position variable
   robot.InitMotorFeedback();
+
+  // Initialise Electromagnet & Set To Output
+  pinMode(DIGITAL_PIN, OUTPUT);
+  digitalWrite(DIGITAL_PIN, LOW);
 
 }
 
@@ -97,6 +102,25 @@ void loop() {
       // Return to IDLE state
       state = IDLE;
       break;
+
+    case DIGITAL_PIN_ON:
+
+      // Turn on the digital pin
+      digitalWrite(DIGITAL_PIN, HIGH);
+
+      // Return to IDLE state
+      state = IDLE;
+      break;
+
+    case DIGITAL_PIN_OFF:
+
+      // Turn off the digital pi
+      digitalWrite(DIGITAL_PIN, LOW);
+
+      // Return to IDLE state
+      state = IDLE;
+      break;
+      
       
       
     default:
