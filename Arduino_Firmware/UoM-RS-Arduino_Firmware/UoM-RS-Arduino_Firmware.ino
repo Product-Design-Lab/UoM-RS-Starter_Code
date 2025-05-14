@@ -23,6 +23,10 @@ Design Lab
 
 #define TIMESTEP_MILLISECONDS 3   // Target Loop rate
 #define DIGITAL_PIN 13 // Define Digital IO Pin
+#define X_PIN 0 // Joystick x-axis pin
+#define Y_PIN 1 // Joystick y-axis pin
+#define BTN_PIN 2 // Joystick button pin
+
 
 // Create global robot object
 UOM_RS_Robot robot;
@@ -47,6 +51,11 @@ void setup() {
   // Read initial feedback & set internal position variable
   robot.InitMotorFeedback();
 
+  // Initialise joystick pins
+  pinMode(X_PIN, INPUT);
+  pinMode(Y_PIN, INPUT);
+  pinMode(BTN_PIN, INPUT);
+
   // Initialise Electromagnet & Set To Output
   pinMode(DIGITAL_PIN, OUTPUT);
   digitalWrite(DIGITAL_PIN, LOW);
@@ -57,6 +66,15 @@ void loop() {
 
   // Begin measuring execution time
   tic = millis();
+
+
+  // // Read motor feedback
+  // robot.ReadFeedback();
+  // Serial.println(robot.q_FB_STS[0]);
+
+  // robot.ReadJoystick(X_PIN, Y_PIN, BTN_PIN);
+  // Serial.println(String(robot.joy_input[0]) + "," + String(robot.joy_input[1]) + "," + String(robot.joy_input[2]));
+
 
   // Finite State Machine
   switch (state) {
@@ -71,11 +89,24 @@ void loop() {
 
     case READ_FB:
 
-      // Read mtor feedback
+      // Read motor feedback
       robot.ReadFeedback();
 
       // Send feedback to MATLAB
       robot.SendFB2MATLAB();
+
+      // Return to IDLE state
+      state = IDLE;
+      break;
+
+    case READ_JOY:
+      // [x,y,btn_state]
+
+      // Read joystick
+      robot.ReadJoystick(X_PIN, Y_PIN, BTN_PIN);
+
+      // Send joystick to MATLAB
+      robot.SendJOY2MATLAB();
 
       // Return to IDLE state
       state = IDLE;
